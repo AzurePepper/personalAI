@@ -1,6 +1,11 @@
+import os
 import streamlit as st
 from pyperclip import copy 
 from backend.backend import get_pdf_text, get_fomatted_doc, get_translated_doc
+
+
+# for deployment
+os.environ["OPENAI_API_KEY"] = st.secrets['openai']["OPENAI_API_KEY"]
 
 # Language handle
 lang_pair = {
