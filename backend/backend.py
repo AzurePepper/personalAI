@@ -5,14 +5,13 @@ from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from PyPDF2 import PdfReader
 
 from langchain.chains import (create_history_aware_retriever,
                               create_retrieval_chain)
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 ## Load .evn for API_KEYs
-load_dotenv()
+# load_dotenv()
 
 
 # Read from pdf
