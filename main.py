@@ -71,7 +71,7 @@ if user_password == kor_password or user_password == en_password:
 
             st.divider()
 
-            with st.expander(label["Translation"]):
+            with st.expander(label["translation"]):
                 with st.spinner():
                     translated_text = get_translated_doc(text)
                 st.markdown(translated_text)
