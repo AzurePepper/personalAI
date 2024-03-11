@@ -19,7 +19,7 @@ def get_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         text = ""
         
-        if len(pdf.pages) > 3:
+        if len(pdf.pages) > 4:
             raise ValueError("Number of page should be less than 3")
 
         for page in pdf.pages:
