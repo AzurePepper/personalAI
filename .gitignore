@@ -2,4 +2,4 @@
 .streamlit/
 
 .env
-
+backend/__pycache__/

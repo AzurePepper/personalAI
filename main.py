@@ -4,8 +4,8 @@ import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 from pyperclip import copy
 
-from backend.backend import (get_parsed_translated_text, get_response,
-                             get_vectorstore_from_url)
+from backend.backend import (get_parsed_translated_text, get_response, get_vectorstore_from_pdf,
+                             get_vectorstore_from_url, get_pdf_text)
 
 ## Handle secret contents
 os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["OPENAI_API_KEY"]
@@ -121,8 +121,8 @@ if authenticated:
 
     elif mode == "Chatbot":
 
-        website_url = st.text_input("webites URL")
-        if website_url is None or website_url == "":
+        uploaded_pdf_file = st.file_uploader("webites URL")
+        if uploaded_pdf_file is None:
             st.info("Please enter a website URL")
 
         else:
@@ -133,7 +133,8 @@ if authenticated:
                 )
 
             if "vector_stores" not in st.session_state:
-                st.session_state.vector_store = get_vectorstore_from_url(website_url)
+                text = get_pdf_text(uploaded_pdf_file)
+                st.session_state.vector_store = get_vectorstore_from_pdf(text)
 
             ##### user input
             user_query = st.chat_input("Type your message here... ")

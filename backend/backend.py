@@ -1,14 +1,14 @@
 import pdfplumber
 import streamlit as st
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_community.vectorstores import Chroma
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, WebBaseLoader
+from langchain_community.vectorstores import Chroma, FAISS
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from langchain.chains import (create_history_aware_retriever,
                               create_retrieval_chain)
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain.chains.combine_documents import create_stuff_documents_chain;
 
 
@@ -77,12 +77,13 @@ def get_parsed_translated_text(uploaded_file):
     return parsed_text, translated_text
 
 
+
 # function for RAG
 def get_vectorstore_from_url(url: str):
     loader = WebBaseLoader(url)
     document = loader.load()
 
-    # split teh documents into chunks
+    # split the documents into chunks
     text_splitter = RecursiveCharacterTextSplitter()
     document_chunks = text_splitter.split_documents(document)
 
@@ -90,6 +91,33 @@ def get_vectorstore_from_url(url: str):
     vector_stores = Chroma.from_documents(document_chunks, OpenAIEmbeddings())
     return vector_stores
 
+# def get_text_chunks(text):
+#     text_splitter = CharacterTextSplitter(
+#         separator="\n",
+#         chunk_size=1000,
+#         chunk_overlap=200,
+#         length_function=len
+#     )
+#     chunks = text_splitter.split_text(text)
+#     return chunks
+
+def get_vectorstore_from_pdf(pdf_text: str):
+    # loader = PyPDFLoader(pdf_text)
+    # documents = loader.load() 
+
+    # split the documents into chunks
+    text_splitter = CharacterTextSplitter(
+        separator="\n",
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len
+    )
+    text_chunks = text_splitter.split_text(pdf_text)
+
+    # create a vectorstore from the chunks
+
+    vector_stores = FAISS.from_texts(texts=text_chunks, embedding=OpenAIEmbeddings())
+    return vector_stores
 
 def get_context_retriever_chain(vector_store):
     llm = ChatOpenAI()
