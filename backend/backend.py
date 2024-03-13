@@ -1,5 +1,5 @@
 import pdfplumber
-from dotenv import load_dotenv
+import streamlit as st
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import StrOutputParser
@@ -9,28 +9,20 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import (create_history_aware_retriever,
                               create_retrieval_chain)
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-## Load .evn for API_KEYs
-# load_dotenv()
+from langchain.chains.combine_documents import create_stuff_documents_chain;
 
 
 # Read from pdf
 def get_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         text = ""
-        
+
         if len(pdf.pages) > 4:
             raise ValueError("Number of page should be less than 3")
 
         for page in pdf.pages:
             text += page.extract_text()
         return text
-
-
-# doc_path = "Tony (DongHee) Lee Resume.pdf"
-#
-# text = get_pdf_text(doc_path)
-# print(text)
 
 
 def get_fomatted_doc(text: str):
@@ -76,7 +68,81 @@ def get_translated_doc(text: str):
     res = translation_chain.invoke({"input": text})
     return res
 
+def get_parsed_translated_text(uploaded_file):
+    # Extract text and render parsed text
+    text = get_pdf_text(uploaded_file)
+    parsed_text = get_fomatted_doc(text)
+    translated_text = get_translated_doc(parsed_text)
 
-# TODO
-# RAG model for remeber conversation history and previous information.
+    return parsed_text, translated_text
 
+
+# function for RAG
+def get_vectorstore_from_url(url: str):
+    loader = WebBaseLoader(url)
+    document = loader.load()
+
+    # split teh documents into chunks
+    text_splitter = RecursiveCharacterTextSplitter()
+    document_chunks = text_splitter.split_documents(document)
+
+    # create a vectorstore from the chunks
+    vector_stores = Chroma.from_documents(document_chunks, OpenAIEmbeddings())
+    return vector_stores
+
+
+def get_context_retriever_chain(vector_store):
+    llm = ChatOpenAI()
+
+    retriever = vector_store.as_retriever()
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("user", "{input}"),
+            (
+                "user",
+                "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation",
+            ),
+        ]
+    )
+
+    retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
+
+    return retriever_chain
+
+
+def get_conversational_rag_chain(retriever_chain):
+    """
+    Contect_retriever_chain takes care of semantic search.
+    And here it connect semantic search and question in LLM
+    """
+
+    llm = ChatOpenAI()
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "Answer the user's questions based on the below context:\n\n{context}",
+            ),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("user", "{input}"),
+        ]
+    )
+
+    stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
+
+    # TODO how the chain connects each other
+    return create_retrieval_chain(retriever_chain, stuff_documents_chain)
+
+
+def get_response(user_input):
+    retriever_chain = get_context_retriever_chain(st.session_state.vector_store)
+    conversation_rag_chain = get_conversational_rag_chain(retriever_chain)
+
+    response = conversation_rag_chain.invoke(
+        {"chat_history": st.session_state.chat_history, "input": user_input}
+    )
+
+    return response["answer"]
