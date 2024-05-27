@@ -123,7 +123,7 @@ if authenticated:
 
         uploaded_pdf_file = st.file_uploader("webites URL")
         if uploaded_pdf_file is None:
-            st.info("Please enter a website URL")
+            st.info("Please select a file")
 
         else:
             if "chat_history" not in st.session_state:
